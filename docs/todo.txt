@@ -1,7 +1,7 @@
 Based on the project requirements, I should do the following:
 PART 1: REPLACEMENT
-An application runs from the command line
-  - Use #!/usr/bin/env ruby, I think?
+✔ An application runs from the command line
+  ✔ - Use #!/usr/bin/env ruby, I think? Yep!
 The application runs from the command line with 3 arguments, and outputs the name of those arguments
   - What happens if we provide greater or fewer arguments?
 The application, instead of outputting the final argument, creates a file with the specified name, and includes the first two argument namess as its body
