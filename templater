@@ -25,14 +25,25 @@ end
 
 # Parse a lookup from the json
 def find_nested_value(chain, from, history=[])
-  value_for_found = from[chain.first]
-  if(value_for_found.nil?)
-    raise "Template Error: Could not find a value for '#{(history << chain.first).join('.')}'."
-  elsif(value_for_found.is_a?(Hash))
-    history << chain.shift
-    if(chain.empty?)
-      raise "Template Error: Expected value for '#{(history << chain.first).join('.')}' to be a string, but it was an object."
+  key = chain.first
+  chain = chain.slice(1..-1)
+  if(key.is_a?(String))
+    unless(from.is_a?(Hash))
+      raise "Template Error: '#{(history).join('.')}' was not an object."
     end
+  elsif(key.is_a?(Integer))
+    unless(from.is_a?(Array))
+      raise "Template Error: '#{(history).join('.')}' was not an array."
+    end
+  else
+    raise "Internal Error: Unexpected key value."
+  end
+
+  value_for_found = from[key]
+  history << key
+  if(value_for_found.nil?)
+    raise "Template Error: Could not find a value for '#{(history).join('.')}'."
+  elsif(!chain.empty?)
     return find_nested_value(chain, value_for_found, history)
   else
     return value_for_found
@@ -57,7 +68,7 @@ until(finished)
     found.strip!
     words = found.split(" ")
     words.map! do |word|
-      word = word.strip.split(".")
+      word.strip.split(".")
     end
     # If the first element's first word is "EACH", set type to 'start_each' and remove it
     # If the first element's first word is "ENDEACH", set type to 'end_each' and remove it
@@ -67,10 +78,21 @@ until(finished)
     if("EACH" == first_word)
       # We already know what the first argument is, so dump it
       words.shift
-      html_document << {:type => 'start_each', :value => words}
+      if(words.length != 2)
+        raise "Template Error: EACH statements require exactly two arguments, a target array and a variable to use as context for inside the loop."
+      end
+      target = words.shift
+      context = words.shift
+      if(context.length > 1)
+        raise "Template Error: EACH statements cannot have their values assigned to a variable chain."
+      end
+      html_document << {:type => 'start_each', :value => target, :replace => context.first}
     elsif("ENDEACH" == first_word)
       words.shift
-      html_document << {:type => 'end_each', :value => words}
+      if(words.length > 0)
+        raise "Template Error: ENDEACH statements cannot take arguments."
+      end
+      html_document << {:type => 'end_each'}
     elsif(words.length > 1)
       raise "Template Error: Could not figure out the logic for '#{words.flatten}'. Did you really intend to use spaces, here?"
     else
@@ -88,28 +110,37 @@ end
 # Crawl through the document and remove EACH/ENDEACH pairs, and everything inside them, from the document flow
 nested_content = [{:content => []}]
 html_document.each do |element|
-
   if('start_each' == element[:type])
     # When we encounter an EACH, find the associated value
-    found_array = find_nested_value(element[:value].first, data_object)
-    if(found_array.is_a?(Array))
-      duplicates = found_array.length
-    else
+    found_array = find_nested_value(element[:value], data_object)
+    if(!found_array.is_a?(Array))
       raise "Template Error: '#{element[:value]}' is not an array. EACH only works with arrays."
     end
-    nested_content << {:duplicates => duplicates, :content => []}
-
+    nested_content << {:duplicates => found_array.length, :content => [], :replace => element[:replace], :with => element[:value]}
   elsif('end_each' == element[:type])
+    # When we encounter an ENDEACH, execute the associated loop
     if(nested_content.length <= 1)
       raise "Template Error: Unmatched ENDEACH."
     else
       newest_loop = nested_content.pop
-      newest_loop[:duplicates].times do
-        nested_content.last[:content] = nested_content.last[:content].concat(newest_loop[:content])
+      # Replace any elements with a fully expanded path to the current array element, and then add to the parent content
+      newest_loop[:duplicates].times do |index|
+        content_iteration = []
+        newest_loop[:content].each do |inner_element|
+          if( ('eval' == inner_element[:type]) && (inner_element[:value].first == newest_loop[:replace]) )
+            ending = inner_element[:value].slice(1..-1)
+            new_path = newest_loop[:with]+[index]+ending
+            content_iteration << { :type => inner_element[:type], :value => new_path }
+          else
+            content_iteration << inner_element
+          end
+        end
+        nested_content.last[:content] = nested_content.last[:content].concat(content_iteration)
       end
     end
 
   else
+    # Otherwise, insert the value into the current content
     nested_content.last[:content] << element
   end
 end
@@ -127,7 +158,7 @@ html_document.each_with_index do |element, index|
     if(string_found.is_a?(String))
       html_document[index] = {:type => 'text', :value => string_found}
     else
-      raise "Template Error: Value for '#{found}' was not a String."
+      raise "Template Error: Value for '#{element[:value]}' was not a String."
     end
   end
 end

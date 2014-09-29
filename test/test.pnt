@@ -5,8 +5,8 @@
       <* test2 *>
     </p>
     <ul>
-      <* EACH fooray *>
-        <li><* EACH fooray *>0n0 <* ENDEACH *></li>
+      <* EACH fooray internal *>
+        <li><* internal *></li>
       <* ENDEACH *>
     </ul>
     <p>

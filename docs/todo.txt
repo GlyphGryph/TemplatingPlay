@@ -63,12 +63,12 @@ PART 2: LOGIC
     ✔ - What do we do with an unmatched EACH or ENDEACH? Throw an error clarifying the problem.
   
  ✔  When we recognize an EACH/ENDEACH pair, instead of ignoring it, replace it with the contents of the EACH block repeated 'n' times, where 'n' is the size of the associated array of the matched text that appears after the EACH keyword, separated by one or more spaces from EACH. Do this for nested EACH pairs as well.
-    - What should we do with any extra arguments? Throw an error
-    - What should we do if we're only given an <* EACH *> without an argument? Throw an error
-    = We should trim the two space separated elements.
-    - What do we do if the associated value isn't an array?
-    = Replace any <* element *> tags within the newly flattened sections by value of the array at the same 'n' index.
-    - When we process EACH pairs, should we do it from the outside in or the inside out?
+    ✔ - What should we do with any extra arguments? Throw an error
+    ✔ - What should we do if we're only given an <* EACH *> without an argument? Throw an error
+    ✔ = We should trim the two space separated elements.
+    ✔ - What do we do if the associated value isn't an array? Throw an error. It's always throw an error.
+    ✔ = Replace any <* element *> tags within the newly flattened sections by value of the array at the same 'n' index.
+    ✔ - When we process EACH pairs, should we do it from the outside in or the inside out? Inside out, so we can continue replacements in the parent loop
 
   When we flatten an EACH loop, recognize and accept a third "argument". When flattening, replace the <* element *> matching above with matching of this third argument instead.
     - What do we do if we have less than three arguments?
