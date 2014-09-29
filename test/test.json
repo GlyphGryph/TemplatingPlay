@@ -1,3 +1,4 @@
 {
-  "test": "This is the basic Test Text."
+  "test1": "This is the first Test Text.",
+  "test2": "This is the second Test Text."
 }

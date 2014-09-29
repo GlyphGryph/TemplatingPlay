@@ -39,12 +39,12 @@ PART 1: REPLACEMENT
   ✔ - What happens if the JSON document doesn't have the "test" value? It should raise an error, and as much information about where in the template file it went wrong as I can grab. I could conceivably return details such as line number and column, but that could get a bit hairy later on with the nested EACH blocks, so for now I'll just raise an error that describes the word we were looking for and could not fine.
   ✔ - What happens if the value of the chosen key is not text? By default, it seems to run to_s on the result. Instead, I feel this, too, should raise an error.
   ✔ - Do we match <* *> pairs across line breaks? I'm going to say no, for now. There's arguments to be made either way, and its definitely an edge case and as such is mostly a concern for future development. If we end up expanding our logic much more, it might be useful. For now, it's only liable to recognize mistakes, however, as valid input, so I'm going to stick with removing the ability. Conveniently, this keeps the regex simpler, since it doesn't match across line breaks by default anyway.
-  = Update page.pnt with a second <* test *> element, and make sure the application replaces both elements.
-  = Ignore any values in the json that aren't used.
-  = Make sure to trim whitespace in the html, <*test*>, <* test*> and <*test    *> should all function properly.
-Insure this works with JSON that have multiple values and .pnt files with multiple value calls
-  = Update page.pnt: <html><body><p>1: <* test1 *></p><p>2: <* test2 *></p></body></html>
-  = Update data.json: { "test1": "This is the first test text.", "test2": "This is the second test text."}
+  ✔ = Update page.pnt with a second <* test *> element, and make sure the application replaces both elements.
+  ✔ = Ignore any values in the json that aren't used.
+  ✔ = Make sure to trim whitespace in the html, <*test*>, <* test*> and <*test    *> should all function properly.
+✔ Insure this works with JSON that have multiple values and .pnt files with multiple value calls
+  ✔ = Update page.pnt: <html><body><p>1: <* test1 *></p><p>2: <* test2 *></p></body></html>
+  ✔ = Update data.json: { "test1": "This is the first test text.", "test2": "This is the second test text."}
 Nesting: When we detect a period in our tagged content, split on the period and search down the json tree for the value.
   - Should we trim whitespace of the new values? No, the initial trim is enough.
   = Update page.pnt, add a <* test3.foo *> and a <* test3.bar *>
@@ -80,3 +80,6 @@ Implement EACH logic, in the format <* EACH object.path new_name_of_target*>
 
   Replace tags that lead with the named EACH element context with the correct version of their values
     - Lots of different ways to do this, lots of concerns. Will expand this section when we get closer.
+
+Final tasks:
+Make sure to undo my "dev output" and start actually writing it to a file again
