@@ -23,13 +23,13 @@ PART 1: REPLACEMENT
   ✔ - What happens with large files? Do we pull them all in at once, or incrementally? Do we even worry about this right now? We should generally try to avoid pulling in large files all at once. Howevever, I suspect we will quickly find that becomes inconvenient and will do so anyway (I will try to avoid it until I have to). Were I not explicitly instructed to not waste my weekend over this, I might have decided otherwise.
 ✔ The second argument is treated as the first, and its body is appended to the output file.
   ✔ - Same questions as above. Presumably the same answers as well? Yep.
-Deserialize the second file into an accessible ruby object, and output the "inspect" for that object instead of the json plaintext.
-  = Object should be a hash
-  - Should we use some sort of json deserialization library, or attempt to do this by hand?
-  - What happens if the format is wrong and the file is invalid json?
-  - How do we even tell if that's the case?
-  - What happens if the file is valid json, but still isn't shaped the way we expect? (For example, if there's an array at the base level.)
+✔ Deserialize the second file into an accessible ruby object, and output the "inspect" for that object instead of the json plaintext.
+  ✔ = Object should be a hash
+  ✔ - Should we use some sort of json deserialization library and which one? Well, Ruby has one by default, so yes, we should definitely use that one.
+  ✔ - What happens if the format is wrong and the file is invalid json? Out default JSOn parser will catch and handle this.
+  ✔ - How do we even tell if that's the case? See above.
 Identity the matched <* *> in the test HTML, and replace every occurence with the value of "test" from the JSON document.
+  - What happens if the file is valid json, but still isn't shaped the way we expect? (For example, if there's an array at the base level.)
   - What happens if there is an open tag but no closing tag?
   - What happens if there is a closing tag but no paired opening tag?
   - What happens with nested opening tags? How are they recognized or ignored?

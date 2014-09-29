@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+require 'json'
 
 if(ARGV.length != 3)
   raise ArgumentError, "Provide exactly 3 arguments."
@@ -11,12 +12,14 @@ template_file = File.open(ARGV[0], "r")
 data_file = File.open(ARGV[1], "r")
 output_file = File.open(ARGV[2], "w") 
 
-[template_file, data_file].each_with_index do |file, index|
-  file.each_line do |input_line|
-    output_file.write("From #{ARGV[index]} :: ")
-    output_file.write(input_line)
-  end
+template_file.each_line do |input_line|
+  output_file.write("From #{ARGV[0]} :: ")
+  output_file.write(input_line)
 end
+
+data_object = JSON.parse(data_file.read)
+output_file.write("Internal JSON object:\n")
+output_file.write(data_object.inspect)
 
 template_file.close
 output_file.close
