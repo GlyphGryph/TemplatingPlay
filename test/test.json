@@ -5,5 +5,9 @@
     "first": "A chaining test value.",
     "second": "A second chaining test value."
   },
-  "fooray": ["one", "two", "three", "four", "five"]
+  "fooray": [
+    {"name": "Joe", "fooray": ["batman","duke"]},
+    {"name": "Carl", "fooray": []},
+    {"name": "Nooget", "fooray": ["spider"]}
+  ]
 }

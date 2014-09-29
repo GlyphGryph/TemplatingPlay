@@ -6,7 +6,7 @@
     </p>
     <ul>
       <* EACH fooray internal *>
-        <li><* internal *></li>
+        <li><* internal.name *></li>
       <* ENDEACH *>
     </ul>
     <p>

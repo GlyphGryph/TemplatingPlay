@@ -8,47 +8,75 @@ if(File.exist?(ARGV[2]))
   raise IOError, "Could not create output file. File \"#{ARGV[2]}\" already exists."
 end
 
+class DataObject
+  def initialize(json_file)
+    File.open(json_file, "r") do |file|
+      @data = JSON.parse(file.read)
+    end
+    unless(@data.is_a?(Hash))
+      raise IOError, "JSON Error: #{ARGV[1]} was not a valid data file for this operation, root must be an Object." 
+    end
+  end
+
+  # Parse a lookup from the json
+  def find(chain, from=@data, history=[])
+    key = chain.first
+    chain = chain.slice(1..-1)
+    if(key.is_a?(String))
+      unless(from.is_a?(Hash))
+        raise "Template Error: '#{(history).join('.')}' was not an object."
+      end
+    elsif(key.is_a?(Integer))
+      unless(from.is_a?(Array))
+        raise "Template Error: '#{(history).join('.')}' was not an array."
+      end
+    else
+      raise "Internal Error: Unexpected key value."
+    end
+
+    value_for_found = from[key]
+    history << key
+    if(value_for_found.nil?)
+      raise "Template Error: Could not find a value for '#{(history).join('.')}'."
+    elsif(!chain.empty?)
+      return self.find(chain, value_for_found, history)
+    else
+      return value_for_found
+    end
+  end
+end
+
+class TextElement
+  attr_reader :value
+  
+  def initalize(value)
+    @value = value
+  end
+end
+
+class EachElement
+  attr_reader :path, :element_name
+  def initialize(path, element_name)
+    @path = path
+    @element_name = element_name
+  end
+end
+
+class EvalElement
+  attr_reader :path
+  def initialize(path)
+    @path = path
+  end
+end
+
+
 # Get html data
 html_text = ""
 File.open(ARGV[0], "r") do |file|
   html_text = file.read
 end
 
-# Get json
-data_object = {}
-File.open(ARGV[1], "r") do |file|
-  data_object = JSON.parse(file.read)
-end
-if(!data_object.is_a?(Hash))
-  raise IOError, "JSON Error: #{ARGV[1]} was not a valid data file for this operation, root must be an Object." 
-end
-
-# Parse a lookup from the json
-def find_nested_value(chain, from, history=[])
-  key = chain.first
-  chain = chain.slice(1..-1)
-  if(key.is_a?(String))
-    unless(from.is_a?(Hash))
-      raise "Template Error: '#{(history).join('.')}' was not an object."
-    end
-  elsif(key.is_a?(Integer))
-    unless(from.is_a?(Array))
-      raise "Template Error: '#{(history).join('.')}' was not an array."
-    end
-  else
-    raise "Internal Error: Unexpected key value."
-  end
-
-  value_for_found = from[key]
-  history << key
-  if(value_for_found.nil?)
-    raise "Template Error: Could not find a value for '#{(history).join('.')}'."
-  elsif(!chain.empty?)
-    return find_nested_value(chain, value_for_found, history)
-  else
-    return value_for_found
-  end
-end
+data = DataObject.new(ARGV[1])
 
 # Break up html file into a document with structure
 html_document = []
@@ -112,7 +140,7 @@ nested_content = [{:content => []}]
 html_document.each do |element|
   if('start_each' == element[:type])
     # When we encounter an EACH, find the associated value
-    found_array = find_nested_value(element[:value], data_object)
+    found_array = data.find(element[:value])
     if(!found_array.is_a?(Array))
       raise "Template Error: '#{element[:value]}' is not an array. EACH only works with arrays."
     end
@@ -154,7 +182,7 @@ html_document = nested_content.pop[:content]
 # Crawl through the document and conduct replacements
 html_document.each_with_index do |element, index|
   if('eval' == element[:type])
-    string_found = find_nested_value(element[:value], data_object)
+    string_found = data.find(element[:value])
     if(string_found.is_a?(String))
       html_document[index] = {:type => 'text', :value => string_found}
     else
@@ -171,3 +199,4 @@ printf html_text
 #File.open(ARGV[2], "w") do |file|
 #  file.write(html_object.join(""))
 #end
+
