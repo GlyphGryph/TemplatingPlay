@@ -8,18 +8,22 @@ if(File.exist?(ARGV[2]))
   raise IOError, "Could not create output file. File \"#{ARGV[2]}\" already exists."
 end
 
-template_file = File.open(ARGV[0], "r")
-data_file = File.open(ARGV[1], "r")
-output_file = File.open(ARGV[2], "w") 
-
-template_file.each_line do |input_line|
-  output_file.write("From #{ARGV[0]} :: ")
-  output_file.write(input_line)
+# Get html data
+html_text = ""
+File.open(ARGV[0], "r") do |file|
+  html_text = file.read
 end
 
-data_object = JSON.parse(data_file.read)
-output_file.write("Internal JSON object:\n")
-output_file.write(data_object.inspect)
+# Get json
+data_object = {}
+File.open(ARGV[1], "r") do |file|
+  data_object = JSON.parse(file.read)
+end
 
-template_file.close
-output_file.close
+# Write output
+File.open(ARGV[2], "w") do |file|
+  file.write("HTML:\n")
+  file.write(html_text)
+  file.write("Internal JSON object:\n")
+  file.write(data_object.inspect)
+end

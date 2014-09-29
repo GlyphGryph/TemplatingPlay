@@ -38,6 +38,7 @@ Identity the matched <* *> in the test HTML, and replace every occurence with th
   - What happens with nested opening tags? How are they recognized or ignored?
   - What happens if the JSON document doesn't have the "test" value?
   - What happens if the value of the chosen key is not text?
+  - Do we match <* *> pairs across line breaks?
   = Update page.pnt with a second <* test *> element, and make sure the application replaces both elements.
   = Ignore any values in the json that aren't used.
   = Make sure to trim whitespace in the html, <*test*>, <* test*> and <*test    *> should all function properly.
