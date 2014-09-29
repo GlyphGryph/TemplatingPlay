@@ -19,6 +19,9 @@ data_object = {}
 File.open(ARGV[1], "r") do |file|
   data_object = JSON.parse(file.read)
 end
+if(!data_object.is_a?(Hash))
+  raise IOError, "JSON Error: #{ARGV[1]} was not a valid data file for this operation, root must be an Object." 
+end
 
 # Break up html file into text chunks and replace chunks
 html_object=[]
@@ -33,10 +36,19 @@ until(finished)
     # Remove the tag openers and closes
     found = found.slice(2..-3)
     found.strip!
+    value_for_found = data_object[found]
+    if(value_for_found)
+      if(value_for_found.is_a?(String))
+        html_object << value_for_found
+      else
+        raise "Template Error: Value for '#{found}' was not a String."
+      end
+    else
+      raise "Template Error: Could not find a value for '#{found}'."
+    end
   else
     finished = true
   end
-  html_object << data_object[found]
   remainder = partition_result[2]
   if(remainder.empty?)
     finished=true
@@ -44,6 +56,7 @@ until(finished)
 end
 
 # Write output
-File.open(ARGV[2], "w") do |file|
-  file.write(html_object.join(""))
-end
+p html_object.join("")
+#File.open(ARGV[2], "w") do |file|
+#  file.write(html_object.join(""))
+#end

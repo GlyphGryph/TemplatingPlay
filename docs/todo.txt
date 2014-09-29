@@ -31,14 +31,14 @@ PART 1: REPLACEMENT
   ✔ - Should we use some sort of json deserialization library and which one? Well, Ruby has one by default, so yes, we should definitely use that one.
   ✔ - What happens if the format is wrong and the file is invalid json? Out default JSOn parser will catch and handle this.
   ✔ - How do we even tell if that's the case? See above.
-Identity the matched <* *> in the test HTML, and replace every occurence with the value of "test" from the JSON document.
-  - What happens if the file is valid json, but still isn't shaped the way we expect? (For example, if there's an array at the base level.)
-  - What happens if there is an open tag but no closing tag?
-  - What happens if there is a closing tag but no paired opening tag?
-  - What happens with nested opening tags? How are they recognized or ignored?
-  - What happens if the JSON document doesn't have the "test" value?
-  - What happens if the value of the chosen key is not text?
-  - Do we match <* *> pairs across line breaks?
+✔ Identity the matched <* *> in the test HTML, and replace every occurence with the value of "test" from the JSON document.
+  ✔ - What happens if the file is valid json, but still isn't shaped the way we expect? (For example, if there's an array at the base level.) I can add a hash to insure that at least the root element is the correct kind of object.
+  ✔ - What happens if there is an open tag but no closing tag? Then the application won't find it and won't recognize it as a tag, since it only looks for pairs.
+  ✔ - What happens if there is a closing tag but no paired opening tag? See above.
+  ✔ - What happens with nested opening tags? How are they recognized or ignored? We'll ignore anything inside a tag that isn't a closing tag. You can't open a new tag inside a tag, so that will be ignored.
+  ✔ - What happens if the JSON document doesn't have the "test" value? It should raise an error, and as much information about where in the template file it went wrong as I can grab. I could conceivably return details such as line number and column, but that could get a bit hairy later on with the nested EACH blocks, so for now I'll just raise an error that describes the word we were looking for and could not fine.
+  ✔ - What happens if the value of the chosen key is not text? By default, it seems to run to_s on the result. Instead, I feel this, too, should raise an error.
+  ✔ - Do we match <* *> pairs across line breaks? I'm going to say no, for now. There's arguments to be made either way, and its definitely an edge case and as such is mostly a concern for future development. If we end up expanding our logic much more, it might be useful. For now, it's only liable to recognize mistakes, however, as valid input, so I'm going to stick with removing the ability. Conveniently, this keeps the regex simpler, since it doesn't match across line breaks by default anyway.
   = Update page.pnt with a second <* test *> element, and make sure the application replaces both elements.
   = Ignore any values in the json that aren't used.
   = Make sure to trim whitespace in the html, <*test*>, <* test*> and <*test    *> should all function properly.
