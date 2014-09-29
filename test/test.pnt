@@ -4,6 +4,11 @@
     <p>
       <* test2 *>
     </p>
+    <ul>
+      <* EACH fooray *>
+        <li>Yo yo yo</li>
+      <* ENDEACH *>
+    </ul>
     <p>
       <* test_chain.first *>
     </p>

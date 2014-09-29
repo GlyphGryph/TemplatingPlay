@@ -41,21 +41,25 @@ def find_nested_value(chain, from, history=[])
   end
 end
 
-# Break up html file into text chunks and replace chunks
-html_object=[]
+# Break up html file into a document with structure
+html_document = []
 remainder = html_text
 finished = false
 until(finished)
   # Break the unparsed section of the file into three pieces, before, after, and equal to the next tag
   partition_result = remainder.partition(/<\*.*?\*>/)
-  html_object << partition_result[0]
+  # Save the first element to our object as type 'text'
+  html_document << {:type => 'text', :value => partition_result[0]}
+
+  # Save the second element to our object as type "eval"
   found = partition_result[1]
   if(!found.empty?)
     # Remove the tag openers and closes
     found = found.slice(2..-3)
     found.strip!
+    found = found.split(".")
     # Dig to find the value of this tag
-    html_object << find_nested_value(found.split("."), data_object)
+    html_document << {:type => 'eval', :value => found}
   else
     finished = true
   end
@@ -65,8 +69,18 @@ until(finished)
   end
 end
 
+# Crawl through the document and conduct replacements
+html_document.each_with_index do |element, index|
+  if('eval' == element[:type])
+    html_document[index] = {:type => 'text', :value => find_nested_value(element[:value], data_object)}
+  end
+end
+
+# Convert the document structure back to flat plaintext
+html_text = html_document.map{|element| element[:value]}.join("")
+
 # Write output
-p html_object.join("")
+p html_text
 #File.open(ARGV[2], "w") do |file|
 #  file.write(html_object.join(""))
 #end
