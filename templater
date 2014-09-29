@@ -86,49 +86,39 @@ until(finished)
 end
 
 # Crawl through the document and remove EACH/ENDEACH pairs, and everything inside them, from the document flow
-extracted_loop_content = []
-depth = 0
-outside_loop = true
-duplicates = 1
-tmp_html_document = []
+nested_content = [{:content => []}]
 html_document.each do |element|
+
   if('start_each' == element[:type])
-    if(depth < 1)
-      # Start tracking the contents for repeating
-      found_array = find_nested_value(element[:value].first, data_object)
-      if(found_array.is_a?(Array))
-        duplicates = found_array.length
-      else
-        raise "Template Error: '#{element[:value]}' is not an array. EACH only works with arrays."
-      end
+    # When we encounter an EACH, find the associated value
+    found_array = find_nested_value(element[:value].first, data_object)
+    if(found_array.is_a?(Array))
+      duplicates = found_array.length
+    else
+      raise "Template Error: '#{element[:value]}' is not an array. EACH only works with arrays."
     end
-    depth += 1
-    outside_loop = false
+    nested_content << {:duplicates => duplicates, :content => []}
+
   elsif('end_each' == element[:type])
-    if(depth < 1)
+    if(nested_content.length <= 1)
       raise "Template Error: Unmatched ENDEACH."
     else
-      depth -= 1
-      if(depth < 1)
-        outside_loop = true
-        duplicates.times do
-          tmp_html_document = tmp_html_document.concat(extracted_loop_content)
-        end
-        duplicates = 1
+      newest_loop = nested_content.pop
+      newest_loop[:duplicates].times do
+        nested_content.last[:content] = nested_content.last[:content].concat(newest_loop[:content])
       end
     end
+
   else
-    if(outside_loop)
-      tmp_html_document << element
-    else
-      extracted_loop_content << element
-    end
+    nested_content.last[:content] << element
   end
 end
-if(depth > 0)
+
+if(nested_content.length > 1)
   raise "Template Error: Unmatched EACH"
 end
-html_document = tmp_html_document
+
+html_document = nested_content.pop[:content]
 
 # Crawl through the document and conduct replacements
 html_document.each_with_index do |element, index|
@@ -146,7 +136,7 @@ end
 html_text = html_document.map{|element| element[:value]}.join("")
 
 # Write output
-p html_text
+printf html_text
 #File.open(ARGV[2], "w") do |file|
 #  file.write(html_object.join(""))
 #end

@@ -62,9 +62,9 @@ PART 2: LOGIC
     ✔ - How do we detect EACH pairs, since they can be nested and we can not simply stop at the first ENDEACH? We'll track the depth, and only commit to our process when we hit the appropriate ENDEACH
     ✔ - What do we do with an unmatched EACH or ENDEACH? Throw an error clarifying the problem.
   
-  When we recognize an EACH/ENDEACH pair, instead of ignoring it, replace it with the contents of the EACH block repeated 'n' times, where 'n' is the size of the associated array of the matched text that appears after the EACH keyword, separated by one or more spaces from EACH. Do this for nested EACH pairs as well.
-    - What should we do with any extra arguments?
-    - What should we do if we're only given an <* EACH *> without an argument?
+ ✔  When we recognize an EACH/ENDEACH pair, instead of ignoring it, replace it with the contents of the EACH block repeated 'n' times, where 'n' is the size of the associated array of the matched text that appears after the EACH keyword, separated by one or more spaces from EACH. Do this for nested EACH pairs as well.
+    - What should we do with any extra arguments? Throw an error
+    - What should we do if we're only given an <* EACH *> without an argument? Throw an error
     = We should trim the two space separated elements.
     - What do we do if the associated value isn't an array?
     = Replace any <* element *> tags within the newly flattened sections by value of the array at the same 'n' index.

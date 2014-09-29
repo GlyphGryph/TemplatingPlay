@@ -6,7 +6,7 @@
     </p>
     <ul>
       <* EACH fooray *>
-        <li>Yo yo yo</li>
+        <li><* EACH fooray *>0n0 <* ENDEACH *></li>
       <* ENDEACH *>
     </ul>
     <p>
