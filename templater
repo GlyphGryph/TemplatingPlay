@@ -20,10 +20,30 @@ File.open(ARGV[1], "r") do |file|
   data_object = JSON.parse(file.read)
 end
 
+# Break up html file into text chunks and replace chunks
+html_object=[]
+remainder = html_text
+finished = false
+until(finished)
+  # Break the unparsed section of the file into three pieces, before, after, and equal to the next tag
+  partition_result = remainder.partition(/<\*.*?\*>/)
+  html_object << partition_result[0]
+  found = partition_result[1]
+  if(!found.empty?)
+    # Remove the tag openers and closes
+    found = found.slice(2..-3)
+    found.strip!
+  else
+    finished = true
+  end
+  html_object << data_object[found]
+  remainder = partition_result[2]
+  if(remainder.empty?)
+    finished=true
+  end
+end
+
 # Write output
 File.open(ARGV[2], "w") do |file|
-  file.write("HTML:\n")
-  file.write(html_text)
-  file.write("Internal JSON object:\n")
-  file.write(data_object.inspect)
+  file.write(html_object.join(""))
 end

@@ -23,7 +23,7 @@ PART 1: REPLACEMENT
   ✔ - What about the devil known as encoding? We should probably detect mime types. We won't, here, though.
   ✔ - What happens if the file isn't in an expected format? Again, we should probably use a mime type detection library, but for the scope of this project we will ignore this concern.
   ✔ - Should we require appropriate file name endings? No, I don't think that's neccessary.
-  ✔ - What happens with large files? Do we pull them all in at once, or incrementally? Do we even worry about this right now? We should generally try to avoid pulling in large files all at once. Howevever, I suspect we will quickly find that becomes inconvenient and will do so anyway (I will try to avoid it until I have to). Were I not explicitly instructed to not waste my weekend over this, I might have decided otherwise.
+  ✔ - What happens with large files? Do we pull them all in at once, or incrementally? Do we even worry about this right now? We should generally try to avoid pulling in large files all at once. Howevever, I suspect we will quickly find that becomes inconvenient and will do so anyway (I will try to avoid it until I have to). Were I not explicitly instructed to not waste my weekend over this, I might have decided otherwise. Update: I just bit the bullet and fully read in the template files now.
 ✔ The second argument is treated as the first, and its body is appended to the output file.
   ✔ - Same questions as above. Presumably the same answers as well? Yep.
 ✔ Deserialize the second file into an accessible ruby object, and output the "inspect" for that object instead of the json plaintext.
