@@ -46,21 +46,21 @@ PART 1: REPLACEMENT
   ✔ = Update page.pnt: <html><body><p>1: <* test1 *></p><p>2: <* test2 *></p></body></html>
   ✔ = Update data.json: { "test1": "This is the first test text.", "test2": "This is the second test text."}
 ✔ Nesting: When we detect a period in our tagged content, split on the period and search down the json tree for the value.
-  ✔ - Should we trim whitespace of the new values? No, the initial trim is enough.
+  ✔ - Should we trim whitespace of the new values? We'll be breaking on words to support the loop argument logic, so yes.
   ✔ = Update page.pnt, add a <* test3.foo *> and a <* test3.bar *>
   ✔ = Update data.json, add "test3": {"foo": "This is Foo", "bar": "This is Bar"}
   ✔ - What should we do if the .pnt just calls "test3", here? Fail, as we did before, when it finds something that isn't a valid value. In this case, we'll do that by throwing an error if the next value we're checking for is ever nil, but we are expecting another because the value returned from the previous term was a Hash.
   ✔ - Should we allow for any amount of nesting? Yes, seems just as easy so why not. A general solution could also handle our solo case.
 
 PART 2: LOGIC
-Implement EACH logic, in the format <* EACH object.path new_name_of_target*>
-  = Update page.pnt to the provided template.panoramatemplate file contents.
-  = Update data.json to the provided data.json file contents.
+✔ Implement EACH logic, in the format <* EACH object.path new_name_of_target*>
+  ✔ = Update page.pnt to the provided template.panoramatemplate file contents.
+  ✔ = Update data.json to the provided data.json file contents.
   
-  Recognize the first element for the keyword EACH and ENDEACH. If this is found, ignore from here to the matched ENDEACH
-    - How do we identity EACHes? Do we parse through the document and check for such logic first, flattening it out, or do we do it in the same run by breaking every tag into objects and then processing them? For our initial run, let's do multiple passes to flatten out the logic.
-    - How do we detect EACH pairs, since they can be nested and we can not simply stop at the first ENDEACH?
-    - What do we do with an unmatched EACH or ENDEACH?
+  ✔ Recognize the first element for the keyword EACH and ENDEACH. If this is found, ignore from here to the matched ENDEACH
+    ✔ - How do we identity EACHes? When we parse our html document into a logic object in ruby, plaintext, tagged elements, and tagged elements that begin with EACH/ENDEACH are given their own element types.
+    ✔ - How do we detect EACH pairs, since they can be nested and we can not simply stop at the first ENDEACH? We'll track the depth, and only commit to our process when we hit the appropriate ENDEACH
+    ✔ - What do we do with an unmatched EACH or ENDEACH? Throw an error clarifying the problem.
   
   When we recognize an EACH/ENDEACH pair, instead of ignoring it, replace it with the contents of the EACH block repeated 'n' times, where 'n' is the size of the associated array of the matched text that appears after the EACH keyword, separated by one or more spaces from EACH. Do this for nested EACH pairs as well.
     - What should we do with any extra arguments?

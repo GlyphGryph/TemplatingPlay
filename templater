@@ -57,9 +57,27 @@ until(finished)
     # Remove the tag openers and closes
     found = found.slice(2..-3)
     found.strip!
-    found = found.split(".")
-    # Dig to find the value of this tag
-    html_document << {:type => 'eval', :value => found}
+    words = found.split(" ")
+    words.map! do |word|
+      word = word.strip.split(".")
+    end
+    # If the first element's first word is "EACH", set type to 'start_each' and remove it
+    # If the first element's first word is "ENDEACH", set type to 'end_each' and remove it
+    # Otherwise, set type to 'eval'
+    # Undo our previous split for the first word only - this should not do anything unless the template is wrong
+    first_word = words.first.join(".")
+    if("EACH" == first_word)
+      # We already know what the first argument is, so dump it
+      words.shift
+      html_document << {:type => 'start_each', :value => words}
+    elsif("ENDEACH" == first_word)
+      words.shift
+      html_document << {:type => 'end_each', :value => words}
+    elsif(words.length > 1)
+      raise "Template Error: Could not figure out the logic for '#{words.flatten}'. Did you really intend to use spaces, here?"
+    else
+      html_document << {:type => 'eval', :value => words.first}
+    end
   else
     finished = true
   end
@@ -68,6 +86,34 @@ until(finished)
     finished=true
   end
 end
+
+# Crawl through the document and remove EACH/ENDEACH pairs, and everything inside them, from the document flow
+extracted_loops = []
+depth = 0
+outside_loop = true
+html_document.each do |element|
+  if('start_each' == element[:type])
+    depth += 1
+    outside_loop = false
+  end
+  if('end_each' == element[:type])
+    if(depth < 1)
+      raise "Template Error: Unmatched ENDEACH."
+    else
+      depth -= 1
+      if(depth < 1)
+        outside_loop = true
+      end
+    end
+  end
+  if(outside_loop)
+    extracted_loops << element
+  end
+end
+if(depth > 0)
+  raise "Template Error: Unmatched EACH"
+end
+html_document = extracted_loops
 
 # Crawl through the document and conduct replacements
 html_document.each_with_index do |element, index|
