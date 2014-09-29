@@ -5,9 +5,11 @@ PART 1: REPLACEMENT
 ✔ The application runs from the command line with 3 arguments, and outputs the name of those arguments
   ✔ - What happens if we provide greater or fewer arguments? We should raise an error, specifying that we need exactly three arguments to run this application.
   ✔- Should we bother included a help file or man page of some sort? I'll say no, for this. If this was an actual tool people would be using though, including something like this would be a no-brainer.
-The application, instead of outputting the final argument, creates a file with the specified name, and includes the first two argument namess as its body
-  - Where is the file created?
-  - What happens when that file already exits?
+✔ The application, instead of outputting the final argument, creates a file with the specified name, and includes the first two argument namess as its body
+  ✔ - Where is the file created? It will be created in a location relative to the caller. (Luckily, desired behaviour here is default behaviour!)
+  ✔ - What happens when that file already exits? For now, we'll throw an error, for safety reasons. There's no reason this app, as is, should be doing anything destructive - scripts or users that call it can be responsible for destroying what needs to be destroyed in a safe way.
+  ✔ = We will be using the File/IO library to handle reading in and spitting out files.
+  ✔ - What should we do with poorly formed arguments, or arguments that form invalid filenames? By default, our application seems to be able to handle any input passed through bash. For a production application, I'd probably spend a bit more time making sure that was the case, but for now we'll accept the default behaviour.
 Create basic test version of documents arguments refer to.
   = HTML document, page.pnt: <html><body> <* test *> </body></html>
   = JSON document, data.json: { "test": "This is the basic Test Text." }
@@ -17,6 +19,7 @@ The first argument is a file name, and is read into the application and then wri
   - What happens if we don't have permission to read the file?
   - What happens if the file isn't in an expected format?
   - Should we require appropriate file name endings?
+  - What happens with large files? Do we pull them all in at once, or incrementally? Do we even worry about this right now?
 The second argument is treated as the first, and its body is appended to the output file.
   - Same questions as above. Presumably the same answers as well.
 Deserialize the second file into an accessible ruby object, and output the "inspect" for that object instead of the json plaintext.
