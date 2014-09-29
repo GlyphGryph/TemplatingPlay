@@ -28,8 +28,6 @@ def find_nested_value(chain, from, history=[])
   value_for_found = from[chain.first]
   if(value_for_found.nil?)
     raise "Template Error: Could not find a value for '#{(history << chain.first).join('.')}'."
-  elsif(value_for_found.is_a?(String))
-    return value_for_found
   elsif(value_for_found.is_a?(Hash))
     history << chain.shift
     if(chain.empty?)
@@ -37,7 +35,7 @@ def find_nested_value(chain, from, history=[])
     end
     return find_nested_value(chain, value_for_found, history)
   else
-    raise "Template Error: Value for '#{found}' was not a String."
+    return value_for_found
   end
 end
 
@@ -88,37 +86,59 @@ until(finished)
 end
 
 # Crawl through the document and remove EACH/ENDEACH pairs, and everything inside them, from the document flow
-extracted_loops = []
+extracted_loop_content = []
 depth = 0
 outside_loop = true
+duplicates = 1
+tmp_html_document = []
 html_document.each do |element|
   if('start_each' == element[:type])
+    if(depth < 1)
+      # Start tracking the contents for repeating
+      found_array = find_nested_value(element[:value].first, data_object)
+      if(found_array.is_a?(Array))
+        duplicates = found_array.length
+      else
+        raise "Template Error: '#{element[:value]}' is not an array. EACH only works with arrays."
+      end
+    end
     depth += 1
     outside_loop = false
-  end
-  if('end_each' == element[:type])
+  elsif('end_each' == element[:type])
     if(depth < 1)
       raise "Template Error: Unmatched ENDEACH."
     else
       depth -= 1
       if(depth < 1)
         outside_loop = true
+        duplicates.times do
+          tmp_html_document = tmp_html_document.concat(extracted_loop_content)
+        end
+        duplicates = 1
       end
     end
-  end
-  if(outside_loop)
-    extracted_loops << element
+  else
+    if(outside_loop)
+      tmp_html_document << element
+    else
+      extracted_loop_content << element
+    end
   end
 end
 if(depth > 0)
   raise "Template Error: Unmatched EACH"
 end
-html_document = extracted_loops
+html_document = tmp_html_document
 
 # Crawl through the document and conduct replacements
 html_document.each_with_index do |element, index|
   if('eval' == element[:type])
-    html_document[index] = {:type => 'text', :value => find_nested_value(element[:value], data_object)}
+    string_found = find_nested_value(element[:value], data_object)
+    if(string_found.is_a?(String))
+      html_document[index] = {:type => 'text', :value => string_found}
+    else
+      raise "Template Error: Value for '#{found}' was not a String."
+    end
   end
 end
 

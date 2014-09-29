@@ -5,7 +5,5 @@
     "first": "A chaining test value.",
     "second": "A second chaining test value."
   },
-  "fooray": ["1", "2", "3"],
-  "EACH fooray": "This is an EACH",
-  "ENDEACH": "This is an ENDEACH"
+  "fooray": ["1", "2", "3", "4", "5"]
 }
