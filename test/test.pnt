@@ -5,7 +5,10 @@
       <* test2 *>
     </p>
     <p>
-      <* test1 *>
+      <* test_chain.first *>
+    </p>
+    <p>
+      <* test_chain.second *>
     </p>
   </body>
 </html>

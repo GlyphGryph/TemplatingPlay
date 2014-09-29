@@ -23,6 +23,24 @@ if(!data_object.is_a?(Hash))
   raise IOError, "JSON Error: #{ARGV[1]} was not a valid data file for this operation, root must be an Object." 
 end
 
+# Parse a lookup from the json
+def find_nested_value(chain, from, history=[])
+  value_for_found = from[chain.first]
+  if(value_for_found.nil?)
+    raise "Template Error: Could not find a value for '#{(history << chain.first).join('.')}'."
+  elsif(value_for_found.is_a?(String))
+    return value_for_found
+  elsif(value_for_found.is_a?(Hash))
+    history << chain.shift
+    if(chain.empty?)
+      raise "Template Error: Expected value for '#{(history << chain.first).join('.')}' to be a string, but it was an object."
+    end
+    return find_nested_value(chain, value_for_found, history)
+  else
+    raise "Template Error: Value for '#{found}' was not a String."
+  end
+end
+
 # Break up html file into text chunks and replace chunks
 html_object=[]
 remainder = html_text
@@ -36,16 +54,8 @@ until(finished)
     # Remove the tag openers and closes
     found = found.slice(2..-3)
     found.strip!
-    value_for_found = data_object[found]
-    if(value_for_found)
-      if(value_for_found.is_a?(String))
-        html_object << value_for_found
-      else
-        raise "Template Error: Value for '#{found}' was not a String."
-      end
-    else
-      raise "Template Error: Could not find a value for '#{found}'."
-    end
+    # Dig to find the value of this tag
+    html_object << find_nested_value(found.split("."), data_object)
   else
     finished = true
   end

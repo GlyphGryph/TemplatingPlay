@@ -45,12 +45,12 @@ PART 1: REPLACEMENT
 ✔ Insure this works with JSON that have multiple values and .pnt files with multiple value calls
   ✔ = Update page.pnt: <html><body><p>1: <* test1 *></p><p>2: <* test2 *></p></body></html>
   ✔ = Update data.json: { "test1": "This is the first test text.", "test2": "This is the second test text."}
-Nesting: When we detect a period in our tagged content, split on the period and search down the json tree for the value.
-  - Should we trim whitespace of the new values? No, the initial trim is enough.
-  = Update page.pnt, add a <* test3.foo *> and a <* test3.bar *>
-  = Update data.json, add "test3": {"foo": "This is Foo", "bar": "This is Bar"}
-  - What should we do if the .pnt just calls "test3", here?
-  - Should we allow for any amount of nesting? Yes, seems just as easy so why not. A general solution could also handle our solo case.
+✔ Nesting: When we detect a period in our tagged content, split on the period and search down the json tree for the value.
+  ✔ - Should we trim whitespace of the new values? No, the initial trim is enough.
+  ✔ = Update page.pnt, add a <* test3.foo *> and a <* test3.bar *>
+  ✔ = Update data.json, add "test3": {"foo": "This is Foo", "bar": "This is Bar"}
+  ✔ - What should we do if the .pnt just calls "test3", here? Fail, as we did before, when it finds something that isn't a valid value. In this case, we'll do that by throwing an error if the next value we're checking for is ever nil, but we are expecting another because the value returned from the previous term was a Hash.
+  ✔ - Should we allow for any amount of nesting? Yes, seems just as easy so why not. A general solution could also handle our solo case.
 
 PART 2: LOGIC
 Implement EACH logic, in the format <* EACH object.path new_name_of_target*>

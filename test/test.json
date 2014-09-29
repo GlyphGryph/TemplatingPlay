@@ -1,4 +1,8 @@
 {
   "test1": "This is the first Test Text.",
-  "test2": "This is the second Test Text."
+  "test2": "This is the second Test Text.",
+  "test_chain": {
+    "first": "A chaining test value.",
+    "second": "A second chaining test value."
+  }
 }
