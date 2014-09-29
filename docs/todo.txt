@@ -2,8 +2,9 @@ Based on the project requirements, I should do the following:
 PART 1: REPLACEMENT
 ✔ An application runs from the command line
   ✔ - Use #!/usr/bin/env ruby, I think? Yep!
-The application runs from the command line with 3 arguments, and outputs the name of those arguments
-  - What happens if we provide greater or fewer arguments?
+✔ The application runs from the command line with 3 arguments, and outputs the name of those arguments
+  ✔ - What happens if we provide greater or fewer arguments? We should raise an error, specifying that we need exactly three arguments to run this application.
+  ✔- Should we bother included a help file or man page of some sort? I'll say no, for this. If this was an actual tool people would be using though, including something like this would be a no-brainer.
 The application, instead of outputting the final argument, creates a file with the specified name, and includes the first two argument namess as its body
   - Where is the file created?
   - What happens when that file already exits?
