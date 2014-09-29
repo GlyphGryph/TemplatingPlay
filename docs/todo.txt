@@ -1,4 +1,7 @@
-Based on the project requirements, I should do the following:
+Based on the project requirements, I should do the following.
+
+✔ - What version of Ruby are we using? 2.0.0-p353
+
 PART 1: REPLACEMENT
 ✔ An application runs from the command line
   ✔ - Use #!/usr/bin/env ruby, I think? Yep!
