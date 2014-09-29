@@ -10,9 +10,9 @@ PART 1: REPLACEMENT
   ✔ - What happens when that file already exits? For now, we'll throw an error, for safety reasons. There's no reason this app, as is, should be doing anything destructive - scripts or users that call it can be responsible for destroying what needs to be destroyed in a safe way.
   ✔ = We will be using the File/IO library to handle reading in and spitting out files.
   ✔ - What should we do with poorly formed arguments, or arguments that form invalid filenames? By default, our application seems to be able to handle any input passed through bash. For a production application, I'd probably spend a bit more time making sure that was the case, but for now we'll accept the default behaviour.
-Create basic test version of documents arguments refer to.
-  = HTML document, page.pnt: <html><body> <* test *> </body></html>
-  = JSON document, data.json: { "test": "This is the basic Test Text." }
+✔ Create basic test version of documents arguments refer to.
+  ✔ = HTML document, page.pnt: <html><body> <* test *> </body></html>
+  ✔ = JSON document, data.json: { "test": "This is the basic Test Text." }
 The first argument is a file name, and is read into the application and then written to the output file
   - Where do we look for the file?
   - What happens if the file isn't found?
