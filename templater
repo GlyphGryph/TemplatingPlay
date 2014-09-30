@@ -21,20 +21,29 @@ class Document
     File.open(file_name, "r") do |file|
       source_text = file.read
     end
-    @body = []
+    @prebody = []
     self.parse_remainder(source_text)
+    self.grow_tree(@prebody)
   end
 
   def parse_remainder(text)
     plaintext_chunk, found_tag, remainder = text.partition(/<\*.*?\*>/)
     if(!plaintext_chunk.empty?)
-      @body << TextElement.new(plaintext_chunk)
+      @prebody << TextElement.new(plaintext_chunk)
     end
     if(!found_tag.empty?)
-      @body << self.element_from_tag(found_tag)
+      @prebody << self.element_from_tag(found_tag)
     end
     if(!remainder.empty?)
       self.parse_remainder(remainder)
+    end
+  end
+
+  # Turn each StartEachElement / EndEachElement pair into a single EachElement, containing it's tree
+  def grow_tree(nodes)
+    @body = DocumentElement.new(@data)
+    nodes.each do |element|
+      @body.feed(element)
     end
   end
 
@@ -75,6 +84,10 @@ class Document
       key.strip
     end
     return chain
+  end
+
+  def get_html
+    return @body.get_html(@data)
   end
 end
 
@@ -123,6 +136,10 @@ class TextElement
   def initialize(value)
     @value = value
   end
+  
+  def get_html(data)
+    return @value
+  end
 end
 
 class StartEachElement
@@ -142,15 +159,100 @@ class EndEachElement
   end
 end
 
-class EachElement
-  def initialize
+class EvalElement
+  attr_reader :path
+
+  def initialize(path)
+    @path = path
+  end
+
+  def get_html(data)
+    found = data.find(path)
+    if(found.is_a?(String))
+      return found
+    else
+      raise "Template Error: Value for '#{element.path}' was not a String."
+    end
   end
 end
 
-class EvalElement
-  attr_reader :path
-  def initialize(path)
+class DocumentElement
+  attr_reader :children, :path
+  def initialize(data, path=nil, context_element=nil)
+    @children = []
+    @open = true
+    # Active node is the value of any open nested node, if one exists
+    @active_nodes = nil
     @path = path
+    @context_element = context_element
+    @data = data
+  end
+  
+  def feed(node)
+    # If we have an active child DocumentElement, simply pass this through
+    if(@active_nodes)
+      if(node.is_a?(EndEachElement))
+        @active_nodes = nil
+      else
+        @active_nodes.each do |active_node|
+          active_node.feed(node)
+        end
+      end
+    else
+      if(node.is_a?(StartEachElement))
+        @active_nodes = []
+        target_array = @data.find(node.path)
+        target_array.each_with_index do |array_element, index|
+          new_path = node.path.clone
+          if(@context_element && new_path.first == @context_element)
+            new_path = @path+[index]+new_path.slice(1..-1)
+          else
+            new_path = [new_path.first]+[index]+new_path.slice(1..-1)
+          end
+          @active_nodes << DocumentElement.new(@data, new_path, node.element_name)
+        end
+        @children.concat(@active_nodes)
+      elsif(node.is_a?(EndEachElement))
+        # If we encounter this on a root DocumentElement, and don't pass it through, we have no matched StartEachElement
+        raise "Template Error: Unmatched ENDEACH."
+      else
+        @children << node
+      end
+    end
+    # We return true to let our owner know to continue feeding us, we haven't reached an end yet
+    return true
+  end
+
+  def get_html(data)
+    html = ""
+    self.flatten_elements(data).each do |element|
+      html += element.get_html(data)
+    end
+    return html
+  end
+
+  def flatten_elements(data)
+    flattened_elements = []
+    @children.each do |element|
+      if(element.is_a?(StartEachElement))
+        raise "Template Error: Unmatched EACH element."
+      elsif(element.is_a?(EndEachElement))
+        raise "Template Error: Unmatched ENDEACH element."
+      elsif(element.is_a?(DocumentElement))
+        element.flatten_elements(data).each do |nested_element|
+          flattened_elements << nested_element
+        end
+      elsif(element.is_a?(EvalElement) && @path)
+        new_path = element.path
+        if(element.path.first == @context_element)
+          new_path = @path+element.path.slice(1..-1)
+        end
+        flattened_elements << EvalElement.new(new_path)
+      else
+        flattened_elements << element
+      end
+    end
+    return flattened_elements
   end
 end
 
@@ -158,70 +260,10 @@ end
 # SCRIPT LOGIC #
 ################
 
-
 document = Document.new(ARGV[0], ARGV[1])
 
-# Crawl through the document and remove EACH/ENDEACH pairs, and everything inside them, from the document flow
-nested_content = [{:content => []}]
-document.body.each do |element|
-  if(element.is_a?(StartEachElement))
-    # When we encounter an EACH, find the associated value
-    found_array = document.data.find(element.path)
-    if(!found_array.is_a?(Array))
-      raise "Template Error: '#{elemen.path}' is not an array. EACH only works with arrays."
-    end
-    nested_content << {:duplicates => found_array.length, :content => [], :replace => element.element_name, :with => element.path}
-  elsif(element.is_a?(EndEachElement))
-    # When we encounter an ENDEACH, execute the associated loop
-    if(nested_content.length <= 1)
-      raise "Template Error: Unmatched ENDEACH."
-    else
-      newest_loop = nested_content.pop
-      # Replace any elements with a fully expanded path to the current array element, and then add to the parent content
-      newest_loop[:duplicates].times do |index|
-        content_iteration = []
-        newest_loop[:content].each do |inner_element|
-          if( inner_element.is_a?(EvalElement) && inner_element.path.first == newest_loop[:replace] )
-            ending = inner_element.path.slice(1..-1)
-            new_path = newest_loop[:with]+[index]+ending
-            content_iteration << EvalElement.new(new_path)
-          else
-            content_iteration << inner_element
-          end
-        end
-        nested_content.last[:content] = nested_content.last[:content].concat(content_iteration)
-      end
-    end
-
-  else
-    # Otherwise, insert the value into the current content
-    nested_content.last[:content] << element
-  end
-end
-
-if(nested_content.length > 1)
-  raise "Template Error: Unmatched EACH"
-end
-
-document.body = nested_content.pop[:content]
-
-# Crawl through the document and conduct replacements
-document.body.each_with_index do |element, index|
-  if(element.is_a?(EvalElement))
-    string_found = document.data.find(element.path)
-    if(string_found.is_a?(String))
-      document.body[index] = TextElement.new(string_found)
-    else
-      raise "Template Error: Value for '#{element.path}' was not a String."
-    end
-  end
-end
-
-# Convert the document structure back to flat plaintext
-html_text = document.body.map{|element| element.value}.join("")
-
 # Write output
-printf html_text
+printf document.get_html.to_s
 #File.open(ARGV[2], "w") do |file|
 #  file.write(html_object.join(""))
 #end
