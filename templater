@@ -16,67 +16,70 @@ class Document
   attr_accessor :body, :source
 
   def initialize(file_name)
-    remainder = ""
+    source_text = ""
     File.open(file_name, "r") do |file|
-      remainder = file.read
+      source_text = file.read
     end
     @body = []
+    parse_remainder(source_text)
+  end
 
-    # Break up html file into a document with structure
-    finished = false
-    until(finished)
-      # Break the unparsed section of the file into three pieces, before, after, and equal to the next tag
-      partition_result = remainder.partition(/<\*.*?\*>/)
-      # Save the first element to our object as type 'text'
-      @body << TextElement.new(partition_result[0])
-
-      # Save the second element to our object as type "eval"
-      found = partition_result[1]
-      if(!found.empty?)
-        # Remove the tag openers and closes
-        found = found.slice(2..-3)
-        found.strip!
-        words = found.split(" ")
-        words.map! do |word|
-          word.strip.split(".")
-        end
-        # If the first element's first word is "EACH", set type to 'start_each' and remove it
-        # If the first element's first word is "ENDEACH", set type to 'end_each' and remove it
-        # Otherwise, set type to 'eval'
-        # Undo our previous split for the first word only - this should not do anything unless the template is wrong
-        first_word = words.first.join(".")
-        if("EACH" == first_word)
-          # We already know what the first argument is, so dump it
-          words.shift
-          if(words.length != 2)
-            raise "Template Error: EACH statements require exactly two arguments, a target array and a variable to use as context for inside the loop."
-          end
-          target = words.shift
-          context = words.shift
-          if(context.length > 1)
-            raise "Template Error: EACH statements cannot have their values assigned to a variable chain."
-          end
-
-          @body << EachElement.new(target, context.first)
-        elsif("ENDEACH" == first_word)
-          words.shift
-          if(words.length > 0)
-            raise "Template Error: ENDEACH statements cannot take arguments."
-          end
-          @body << EndEachElement.new
-        elsif(words.length > 1)
-          raise "Template Error: Could not figure out the logic for '#{words.flatten}'. Did you really intend to use spaces, here?"
-        else
-          @body << EvalElement.new(words.first)
-        end
-      else
-        finished = true
-      end
-      remainder = partition_result[2]
-      if(remainder.empty?)
-        finished=true
-      end
+private
+  def parse_remainder(text)
+    plaintext_chunk, found_tag, remainder = text.partition(/<\*.*?\*>/)
+    if(!plaintext_chunk.empty?)
+      @body << TextElement.new(plaintext_chunk)
     end
+    if(!found_tag.empty?)
+      @body << element_from_tag(found_tag)
+    end
+    if(!remainder.empty?)
+      parse_remainder(remainder)
+    end
+  end
+
+  def element_from_tag(tag)
+    # Extract the text inside the delimiters
+    tag = tag.slice(2..-3)
+    # Separate content into 'words' separated by spaces, and strip surrounding whitespace of words
+    words = tag.split(" ").map do |word|
+      word.strip
+    end
+
+    # If the first element's first word is "EACH", set type to 'start_each' and remove it
+    # If the first element's first word is "ENDEACH", set type to 'end_each' and remove it
+    # Otherwise, set type to 'eval'
+    if("EACH" == words[0])
+      if(words.length != 3)
+        raise "Template Error: EACH statements require exactly two arguments, a target array and a variable to use as context for inside the loop."
+      end
+      target = chain_from_path(words[1])
+      context = words[2]
+
+      # Raise an error if the context contains a period - this is context variable, and that would be invalid
+      if(context.include?("."))
+        raise "Template Error: EACH statements cannot have their values assigned to a variable chain."
+      end
+
+      return EachElement.new(target, context)
+    elsif("ENDEACH" == words[0])
+      if(words.length > 1)
+        raise "Template Error: ENDEACH statements cannot take arguments."
+      end
+      return EndEachElement.new
+    elsif(words.length > 1)
+      raise "Template Error: Could not figure out the logic for '#{words.join(" ")}'. Did you really intend to use spaces, here?"
+    else
+      return EvalElement.new(chain_from_path(words.first))
+    end
+  end
+
+  # This turns a dot separated path into an array of keys
+  def chain_from_path(path)
+    chain = path.split(".") do |key|
+      key.strip
+    end
+    return chain
   end
 end
 
