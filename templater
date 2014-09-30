@@ -13,28 +13,28 @@ end
 ######################
 
 class Document
-  attr_accessor :body, :source
+  attr_accessor :body, :data
 
-  def initialize(file_name)
+  def initialize(file_name, data_file)
+    @data = DataObject.new(ARGV[1])
     source_text = ""
     File.open(file_name, "r") do |file|
       source_text = file.read
     end
     @body = []
-    parse_remainder(source_text)
+    self.parse_remainder(source_text)
   end
 
-private
   def parse_remainder(text)
     plaintext_chunk, found_tag, remainder = text.partition(/<\*.*?\*>/)
     if(!plaintext_chunk.empty?)
       @body << TextElement.new(plaintext_chunk)
     end
     if(!found_tag.empty?)
-      @body << element_from_tag(found_tag)
+      @body << self.element_from_tag(found_tag)
     end
     if(!remainder.empty?)
-      parse_remainder(remainder)
+      self.parse_remainder(remainder)
     end
   end
 
@@ -53,15 +53,10 @@ private
       if(words.length != 3)
         raise "Template Error: EACH statements require exactly two arguments, a target array and a variable to use as context for inside the loop."
       end
-      target = chain_from_path(words[1])
+      target = self.chain_from_path(words[1])
       context = words[2]
 
-      # Raise an error if the context contains a period - this is context variable, and that would be invalid
-      if(context.include?("."))
-        raise "Template Error: EACH statements cannot have their values assigned to a variable chain."
-      end
-
-      return EachElement.new(target, context)
+      return StartEachElement.new(target, context)
     elsif("ENDEACH" == words[0])
       if(words.length > 1)
         raise "Template Error: ENDEACH statements cannot take arguments."
@@ -70,7 +65,7 @@ private
     elsif(words.length > 1)
       raise "Template Error: Could not figure out the logic for '#{words.join(" ")}'. Did you really intend to use spaces, here?"
     else
-      return EvalElement.new(chain_from_path(words.first))
+      return EvalElement.new(self.chain_from_path(words.first))
     end
   end
 
@@ -94,7 +89,7 @@ class DataObject
     end
   end
 
-  # Parse a lookup from the json
+  # Find an element from the JSON, given a path array
   def find(chain, from=@data, history=[])
     key = chain.first
     chain = chain.slice(1..-1)
@@ -130,15 +125,24 @@ class TextElement
   end
 end
 
-class EachElement
+class StartEachElement
   attr_reader :path, :element_name
   def initialize(path, element_name)
     @path = path
+    # Raise an error if the context contains a period - this is context variable, and that would be invalid
+    if(element_name.include?("."))
+      raise "Template Error: EACH statements cannot have their values assigned to a variable chain."
+    end
     @element_name = element_name
   end
 end
 
 class EndEachElement
+  def initialize
+  end
+end
+
+class EachElement
   def initialize
   end
 end
@@ -155,16 +159,14 @@ end
 ################
 
 
-document = Document.new(ARGV[0])
-data = DataObject.new(ARGV[1])
-
+document = Document.new(ARGV[0], ARGV[1])
 
 # Crawl through the document and remove EACH/ENDEACH pairs, and everything inside them, from the document flow
 nested_content = [{:content => []}]
 document.body.each do |element|
-  if(element.is_a?(EachElement))
+  if(element.is_a?(StartEachElement))
     # When we encounter an EACH, find the associated value
-    found_array = data.find(element.path)
+    found_array = document.data.find(element.path)
     if(!found_array.is_a?(Array))
       raise "Template Error: '#{elemen.path}' is not an array. EACH only works with arrays."
     end
@@ -206,7 +208,7 @@ document.body = nested_content.pop[:content]
 # Crawl through the document and conduct replacements
 document.body.each_with_index do |element, index|
   if(element.is_a?(EvalElement))
-    string_found = data.find(element.path)
+    string_found = document.data.find(element.path)
     if(string_found.is_a?(String))
       document.body[index] = TextElement.new(string_found)
     else
