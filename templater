@@ -8,9 +8,82 @@ if(File.exist?(ARGV[2]))
   raise IOError, "Could not create output file. File \"#{ARGV[2]}\" already exists."
 end
 
+######################
+# CLASS DECLARATIONS #
+######################
+
+class Document
+  attr_accessor :body, :source
+
+  def initialize(file_name)
+    remainder = ""
+    File.open(file_name, "r") do |file|
+      remainder = file.read
+    end
+    @body = []
+
+    # Break up html file into a document with structure
+    finished = false
+    until(finished)
+      # Break the unparsed section of the file into three pieces, before, after, and equal to the next tag
+      partition_result = remainder.partition(/<\*.*?\*>/)
+      # Save the first element to our object as type 'text'
+      @body << TextElement.new(partition_result[0])
+
+      # Save the second element to our object as type "eval"
+      found = partition_result[1]
+      if(!found.empty?)
+        # Remove the tag openers and closes
+        found = found.slice(2..-3)
+        found.strip!
+        words = found.split(" ")
+        words.map! do |word|
+          word.strip.split(".")
+        end
+        # If the first element's first word is "EACH", set type to 'start_each' and remove it
+        # If the first element's first word is "ENDEACH", set type to 'end_each' and remove it
+        # Otherwise, set type to 'eval'
+        # Undo our previous split for the first word only - this should not do anything unless the template is wrong
+        first_word = words.first.join(".")
+        if("EACH" == first_word)
+          # We already know what the first argument is, so dump it
+          words.shift
+          if(words.length != 2)
+            raise "Template Error: EACH statements require exactly two arguments, a target array and a variable to use as context for inside the loop."
+          end
+          target = words.shift
+          context = words.shift
+          if(context.length > 1)
+            raise "Template Error: EACH statements cannot have their values assigned to a variable chain."
+          end
+
+          @body << EachElement.new(target, context.first)
+        elsif("ENDEACH" == first_word)
+          words.shift
+          if(words.length > 0)
+            raise "Template Error: ENDEACH statements cannot take arguments."
+          end
+          @body << EndEachElement.new
+        elsif(words.length > 1)
+          raise "Template Error: Could not figure out the logic for '#{words.flatten}'. Did you really intend to use spaces, here?"
+        else
+          @body << EvalElement.new(words.first)
+        end
+      else
+        finished = true
+      end
+      remainder = partition_result[2]
+      if(remainder.empty?)
+        finished=true
+      end
+    end
+  end
+end
+
+
 class DataObject
-  def initialize(json_file)
-    File.open(json_file, "r") do |file|
+  def initialize(file_name)
+    File.open(file_name, "r") do |file|
       @data = JSON.parse(file.read)
     end
     unless(@data.is_a?(Hash))
@@ -74,75 +147,18 @@ class EvalElement
   end
 end
 
-# Get html data
-html_text = ""
-File.open(ARGV[0], "r") do |file|
-  html_text = file.read
-end
+################
+# SCRIPT LOGIC #
+################
 
+
+document = Document.new(ARGV[0])
 data = DataObject.new(ARGV[1])
 
-# Break up html file into a document with structure
-html_document = []
-remainder = html_text
-finished = false
-until(finished)
-  # Break the unparsed section of the file into three pieces, before, after, and equal to the next tag
-  partition_result = remainder.partition(/<\*.*?\*>/)
-  # Save the first element to our object as type 'text'
-  html_document << TextElement.new(partition_result[0])
-
-  # Save the second element to our object as type "eval"
-  found = partition_result[1]
-  if(!found.empty?)
-    # Remove the tag openers and closes
-    found = found.slice(2..-3)
-    found.strip!
-    words = found.split(" ")
-    words.map! do |word|
-      word.strip.split(".")
-    end
-    # If the first element's first word is "EACH", set type to 'start_each' and remove it
-    # If the first element's first word is "ENDEACH", set type to 'end_each' and remove it
-    # Otherwise, set type to 'eval'
-    # Undo our previous split for the first word only - this should not do anything unless the template is wrong
-    first_word = words.first.join(".")
-    if("EACH" == first_word)
-      # We already know what the first argument is, so dump it
-      words.shift
-      if(words.length != 2)
-        raise "Template Error: EACH statements require exactly two arguments, a target array and a variable to use as context for inside the loop."
-      end
-      target = words.shift
-      context = words.shift
-      if(context.length > 1)
-        raise "Template Error: EACH statements cannot have their values assigned to a variable chain."
-      end
-
-      html_document << EachElement.new(target, context.first)
-    elsif("ENDEACH" == first_word)
-      words.shift
-      if(words.length > 0)
-        raise "Template Error: ENDEACH statements cannot take arguments."
-      end
-      html_document << EndEachElement.new
-    elsif(words.length > 1)
-      raise "Template Error: Could not figure out the logic for '#{words.flatten}'. Did you really intend to use spaces, here?"
-    else
-      html_document << EvalElement.new(words.first)
-    end
-  else
-    finished = true
-  end
-  remainder = partition_result[2]
-  if(remainder.empty?)
-    finished=true
-  end
-end
 
 # Crawl through the document and remove EACH/ENDEACH pairs, and everything inside them, from the document flow
 nested_content = [{:content => []}]
-html_document.each do |element|
+document.body.each do |element|
   if(element.is_a?(EachElement))
     # When we encounter an EACH, find the associated value
     found_array = data.find(element.path)
@@ -182,14 +198,14 @@ if(nested_content.length > 1)
   raise "Template Error: Unmatched EACH"
 end
 
-html_document = nested_content.pop[:content]
+document.body = nested_content.pop[:content]
 
 # Crawl through the document and conduct replacements
-html_document.each_with_index do |element, index|
+document.body.each_with_index do |element, index|
   if(element.is_a?(EvalElement))
     string_found = data.find(element.path)
     if(string_found.is_a?(String))
-      html_document[index] = TextElement.new(string_found)
+      document.body[index] = TextElement.new(string_found)
     else
       raise "Template Error: Value for '#{element.path}' was not a String."
     end
@@ -197,7 +213,7 @@ html_document.each_with_index do |element, index|
 end
 
 # Convert the document structure back to flat plaintext
-html_text = html_document.map{|element| element.value}.join("")
+html_text = document.body.map{|element| element.value}.join("")
 
 # Write output
 printf html_text
