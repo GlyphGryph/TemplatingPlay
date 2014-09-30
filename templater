@@ -4,9 +4,6 @@ require 'json'
 if(ARGV.length != 3)
   raise ArgumentError, "Provide exactly 3 arguments."
 end
-if(File.exist?(ARGV[2]))
-  raise IOError, "Could not create output file. File \"#{ARGV[2]}\" already exists."
-end
 
 ######################
 # CLASS DECLARATIONS #
@@ -269,8 +266,7 @@ end
 document = Document.new(ARGV[0], ARGV[1])
 
 # Write output
-printf document.get_html.to_s
-#File.open(ARGV[2], "w") do |file|
-#  file.write(html_object.join(""))
-#end
+File.open(ARGV[2], "w") do |file|
+  file.write(document.get_html)
+end
 
