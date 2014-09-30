@@ -6,7 +6,12 @@
     </p>
     <ul>
       <* EACH fooray internal *>
-        <li><* internal.name *></li>
+        <li>
+          <* internal.name *>
+          <* EACH internal.alts.foo something *>
+            <* something *>
+          <* ENDEACH *>
+        </li>
       <* ENDEACH *>
     </ul>
     <p>

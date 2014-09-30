@@ -187,11 +187,17 @@ class DocumentElement
     @context_element = context_element
     @data = data
   end
+
+  def active?
+    return @active_nodes
+  end
   
   def feed(node)
     # If we have an active child DocumentElement, simply pass this through
-    if(@active_nodes)
-      if(node.is_a?(EndEachElement))
+    if(self.active?)
+      # If this is an end node, and the child nodes are not active
+      # Then stop feeding child nodes
+      if(node.is_a?(EndEachElement) && @active_nodes.first && !@active_nodes.first.active?)
         @active_nodes = nil
       else
         @active_nodes.each do |active_node|
@@ -201,14 +207,14 @@ class DocumentElement
     else
       if(node.is_a?(StartEachElement))
         @active_nodes = []
-        target_array = @data.find(node.path)
+        full_path = node.path.clone
+        if(full_path.first == @context_element)
+          full_path = @path+full_path.slice(1..-1)
+        end
+        target_array = @data.find(full_path)
         target_array.each_with_index do |array_element, index|
-          new_path = node.path.clone
-          if(@context_element && new_path.first == @context_element)
-            new_path = @path+[index]+new_path.slice(1..-1)
-          else
-            new_path = [new_path.first]+[index]+new_path.slice(1..-1)
-          end
+          new_path = full_path.clone
+          new_path = new_path+[index]
           @active_nodes << DocumentElement.new(@data, new_path, node.element_name)
         end
         @children.concat(@active_nodes)

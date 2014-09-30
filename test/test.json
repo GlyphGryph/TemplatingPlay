@@ -6,8 +6,8 @@
     "second": "A second chaining test value."
   },
   "fooray": [
-    {"name": "Joe", "fooray": ["batman","duke"]},
-    {"name": "Carl", "fooray": []},
-    {"name": "Nooget", "fooray": ["spider"]}
+    {"name": "Joe", "alts": {"foo": ["batman","duke"]} },
+    {"name": "Carl", "alts": {"foo": []}},
+    {"name": "Nooget", "alts": {"foo":["spider"]}}
   ]
 }
