@@ -49,7 +49,7 @@ end
 class TextElement
   attr_reader :value
   
-  def initalize(value)
+  def initialize(value)
     @value = value
   end
 end
@@ -62,13 +62,17 @@ class EachElement
   end
 end
 
+class EndEachElement
+  def initialize
+  end
+end
+
 class EvalElement
   attr_reader :path
   def initialize(path)
     @path = path
   end
 end
-
 
 # Get html data
 html_text = ""
@@ -86,7 +90,7 @@ until(finished)
   # Break the unparsed section of the file into three pieces, before, after, and equal to the next tag
   partition_result = remainder.partition(/<\*.*?\*>/)
   # Save the first element to our object as type 'text'
-  html_document << {:type => 'text', :value => partition_result[0]}
+  html_document << TextElement.new(partition_result[0])
 
   # Save the second element to our object as type "eval"
   found = partition_result[1]
@@ -114,17 +118,18 @@ until(finished)
       if(context.length > 1)
         raise "Template Error: EACH statements cannot have their values assigned to a variable chain."
       end
-      html_document << {:type => 'start_each', :value => target, :replace => context.first}
+
+      html_document << EachElement.new(target, context.first)
     elsif("ENDEACH" == first_word)
       words.shift
       if(words.length > 0)
         raise "Template Error: ENDEACH statements cannot take arguments."
       end
-      html_document << {:type => 'end_each'}
+      html_document << EndEachElement.new
     elsif(words.length > 1)
       raise "Template Error: Could not figure out the logic for '#{words.flatten}'. Did you really intend to use spaces, here?"
     else
-      html_document << {:type => 'eval', :value => words.first}
+      html_document << EvalElement.new(words.first)
     end
   else
     finished = true
@@ -138,14 +143,14 @@ end
 # Crawl through the document and remove EACH/ENDEACH pairs, and everything inside them, from the document flow
 nested_content = [{:content => []}]
 html_document.each do |element|
-  if('start_each' == element[:type])
+  if(element.is_a?(EachElement))
     # When we encounter an EACH, find the associated value
-    found_array = data.find(element[:value])
+    found_array = data.find(element.path)
     if(!found_array.is_a?(Array))
-      raise "Template Error: '#{element[:value]}' is not an array. EACH only works with arrays."
+      raise "Template Error: '#{elemen.path}' is not an array. EACH only works with arrays."
     end
-    nested_content << {:duplicates => found_array.length, :content => [], :replace => element[:replace], :with => element[:value]}
-  elsif('end_each' == element[:type])
+    nested_content << {:duplicates => found_array.length, :content => [], :replace => element.element_name, :with => element.path}
+  elsif(element.is_a?(EndEachElement))
     # When we encounter an ENDEACH, execute the associated loop
     if(nested_content.length <= 1)
       raise "Template Error: Unmatched ENDEACH."
@@ -155,10 +160,10 @@ html_document.each do |element|
       newest_loop[:duplicates].times do |index|
         content_iteration = []
         newest_loop[:content].each do |inner_element|
-          if( ('eval' == inner_element[:type]) && (inner_element[:value].first == newest_loop[:replace]) )
-            ending = inner_element[:value].slice(1..-1)
+          if( inner_element.is_a?(EvalElement) && inner_element.path.first == newest_loop[:replace] )
+            ending = inner_element.path.slice(1..-1)
             new_path = newest_loop[:with]+[index]+ending
-            content_iteration << { :type => inner_element[:type], :value => new_path }
+            content_iteration << EvalElement.new(new_path)
           else
             content_iteration << inner_element
           end
@@ -181,18 +186,18 @@ html_document = nested_content.pop[:content]
 
 # Crawl through the document and conduct replacements
 html_document.each_with_index do |element, index|
-  if('eval' == element[:type])
-    string_found = data.find(element[:value])
+  if(element.is_a?(EvalElement))
+    string_found = data.find(element.path)
     if(string_found.is_a?(String))
-      html_document[index] = {:type => 'text', :value => string_found}
+      html_document[index] = TextElement.new(string_found)
     else
-      raise "Template Error: Value for '#{element[:value]}' was not a String."
+      raise "Template Error: Value for '#{element.path}' was not a String."
     end
   end
 end
 
 # Convert the document structure back to flat plaintext
-html_text = html_document.map{|element| element[:value]}.join("")
+html_text = html_document.map{|element| element.value}.join("")
 
 # Write output
 printf html_text
